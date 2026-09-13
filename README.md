@@ -1,94 +1,197 @@
-# AI IDE — starter build
+# AI IDE
 
-A real, runnable scaffold for the multi-provider AI coding IDE spec: Electron +
-React + TypeScript + Vite + Monaco, with genuine (not mocked) integrations for
-Google AI Studio (Gemini), NVIDIA NIM, and Groq.
+**A privacy-focused, multi-provider AI coding IDE for Windows.**
 
-This is **Phase 1–3 of the spec's own roadmap**, functional end-to-end, plus
-structural scaffolding for the later phases. Per the spec's rule *"do not
-create fake functionality — mark unfinished things as TODO"*, everything below
-is labeled honestly.
+AI IDE combines a modern code editor, integrated terminal, file explorer, and AI coding assistant into a single desktop application.
 
-## Run it
+It runs locally on your computer, works directly with your existing projects, and does **not require a database or backend**.
+
+> **Bring Your Own Key (BYOK)** — use your own AI provider API keys and communicate directly with supported AI providers.
+
+---
+
+## ✨ Features
+
+### 💻 Full Coding Environment
+
+* Monaco-powered code editor
+* Open and work with real local project folders
+* Browse project files with an integrated file explorer
+* Edit and save files directly
+* Integrated terminal powered by `node-pty`
+* Keyboard shortcuts such as `Ctrl/Cmd + S`
+* Protected filesystem operations and path-traversal safeguards
+
+### 🤖 Multi-Provider AI
+
+Connect your own API keys and use multiple AI providers from one application.
+
+Currently supported:
+
+* **Google Gemini**
+* **NVIDIA NIM**
+* **Groq**
+* OpenAI-compatible providers through the shared provider interface
+
+The architecture is designed so additional providers can be added without rewriting the rest of the application.
+
+### 🧠 AI Coding Modes
+
+AI IDE provides different workflows for different development tasks:
+
+* **Ask** — ask questions about your code
+* **Code** — generate new code and solutions
+* **Edit** — modify existing code
+* **Agent** — work toward more complex coding tasks
+
+### 🔀 Model Routing
+
+The built-in model router can classify tasks and select an appropriate configured provider.
+
+It also supports provider fallback when a request fails, while respecting an explicitly selected provider/model.
+
+### 📝 Code Changes & Diff Review
+
+AI-generated changes can be reviewed before being applied.
+
+* View proposed changes
+* Review diffs
+* Apply changes
+* Reject changes
+
+### 🔐 Privacy & Local-First Design
+
+AI IDE is designed without requiring a central backend.
+
+**No database.**
+
+**No cloud chat history.**
+
+**No account required.**
+
+**No server-side project storage.**
+
+Chat messages are kept in application memory for the active session and are not persisted by the application.
+
+API keys are stored locally using Electron's `safeStorage` mechanism rather than being stored in a database.
+
+Your projects remain on your own computer.
+
+---
+
+## 🏗️ Architecture
+
+```text
+┌─────────────────────────────────────┐
+│              AI IDE                 │
+│             Electron                │
+├─────────────────────────────────────┤
+│                                     │
+│  React + TypeScript + Vite          │
+│  Monaco Editor                      │
+│  Zustand                            │
+│                                     │
+├───────────────┬─────────────────────┤
+│ Local Files   │ AI Provider Layer   │
+│               │                     │
+│ File System   │ Google Gemini       │
+│ Terminal      │ NVIDIA NIM          │
+│ Settings      │ Groq                │
+│               │ OpenAI-compatible   │
+└───────────────┴─────────────────────┘
+                       │
+                       ▼
+                AI Provider APIs
+```
+
+The application communicates directly with the configured AI provider using the user's API key.
+
+There is no required application server between the desktop application and the AI provider.
+
+---
+
+## 🛠️ Technology Stack
+
+| Technology           | Purpose                            |
+| -------------------- | ---------------------------------- |
+| Electron             | Desktop application runtime        |
+| React                | User interface                     |
+| TypeScript           | Application language               |
+| Vite                 | Frontend build system              |
+| Monaco Editor        | Code editor                        |
+| Zustand              | State management                   |
+| Tailwind CSS         | UI styling                         |
+| node-pty             | Integrated terminal                |
+| Electron IPC         | Secure main/renderer communication |
+| Electron safeStorage | Local API-key protection           |
+| electron-builder     | Windows application packaging      |
+
+---
+
+## 🚀 Installation
+
+### Option 1 — Download the Windows installer
+
+Download the latest Windows installer from the project's **GitHub Releases** page.
+
+Run:
+
+```text
+AI IDE Setup.exe
+```
+
+and follow the installation instructions.
+
+No Node.js installation is required for end users.
+
+---
+
+## 🧑‍💻 Development Setup
+
+If you want to run AI IDE from source, install:
+
+* Node.js
+* npm
+* Git
+
+Clone the repository:
+
+```bash
+git clone https://github.com/YOUR_USERNAME/ai-ide.git
+cd ai-ide
+```
+
+Install dependencies:
 
 ```bash
 npm install
-npx electron-rebuild        # rebuilds node-pty's native binding for Electron
-npm run dev                 # starts Vite on localhost:5173
+```
+
+Rebuild native dependencies:
+
+```bash
+npm run rebuild
+```
+
+Start the Vite development server:
+
+```bash
+npm run dev
 ```
 
 In a second terminal:
 
 ```bash
-npm run dev:electron        # compiles electron/*.ts and launches the app
+npm run dev:electron
 ```
 
-(A single `npm run start` script is included for a production-style build —
-see package.json.)
+---
 
-## ✅ Genuinely working
+## 📦 Building the Windows Installer
 
-- Electron shell with context isolation, no node integration, sandboxed
-  renderer, allow-listed IPC (`electron/main.ts`, `electron/preload.ts`)
-- File explorer + Monaco editor: open a real project folder, browse, open,
-  edit, save (Ctrl/Cmd+S), with path-traversal guards (`electron/ipc/fs.ts`)
-- Integrated terminal via node-pty, streamed over IPC (`electron/ipc/terminal.ts`)
-- API key management: OS-keychain-backed encryption via `safeStorage`, never
-  round-tripped to the renderer in full, only masked (`electron/ipc/keys.ts`)
-- Three real provider clients with streaming, model discovery, and key
-  validation against the actual APIs — no canned responses:
-  - `ai/providers/google/GoogleProvider.ts` (Gemini `generateContent` / SSE stream)
-  - `ai/providers/nvidia/NvidiaProvider.ts` (OpenAI-compatible `/chat/completions`)
-  - `ai/providers/groq/GroqProvider.ts` (same wire format as NVIDIA)
-- Model switching UI + manual key/model selection, with the selected
-  provider/model visibly shown in chat replies
-- Auto-routing with task classification and automatic fallback across
-  providers on error, without ever overriding an explicit user selection
-  (`ai/router/ModelRouter.ts`)
-- Ask / Code / Edit / Agent mode tabs, diff view with Apply/Reject
-  (`ai/context/ContextManager.ts`, `src/components/Diff/DiffView.tsx`)
-- Explicit, opt-in AI context via chips — nothing is auto-exposed, `.env`-like
-  files are refused outright
+AI IDE can be packaged as a standalone Windows installer.
 
-## 🚧 Structural scaffold — real interfaces, marked TODO
-
-- **Agent tool-calling loop** (`ai/agent/AgentLoop.ts`): the loop, permission
-  gating, and message threading are implemented; the model↔tool wiring is a
-  `TODO` because it depends on a choice between native function-calling vs. a
-  structured-text protocol — see the comparison in the chat response that
-  shipped with this build.
-- **Git integration**, **live frontend preview iframe**, **usage dashboard
-  persistence**, **MCP/plugin loader**, **command palette**, **model
-  favorites/profiles UI** — each has a clear seam to extend (provider
-  registry, IPC pattern, store shape) but is not wired into the UI yet.
-- Project-wide search is a naive recursive walk; swap for an indexed/ripgrep
-  approach before using on large repos (see comments in `electron/ipc/fs.ts`).
-
-## Project layout
-
-```
-electron/        Main process: window, IPC (fs, terminal, keys), security
-src/              Renderer: React UI, Zustand store, components
-ai/               Provider abstraction, router, agent scaffold, context manager
-```
-
-## Adding a 4th provider
-
-Implement `AIProvider` (see `ai/core/types.ts`), register it in
-`ai/core/registry.ts`, and add its section to `SettingsPanel.tsx`. Nothing
-else in the app needs to change — that isolation was a first-class goal of
-the architecture.
-
-## Windows deployment (no database / no chat persistence)
-
-This app is designed to run as a standalone Windows Electron application. It does
-not require a backend or database. Chat messages are kept in the React component
-state for the active session and are not persisted by the app. API keys are stored
-locally using Electron `safeStorage` (Windows DPAPI) rather than a database.
-
-### Build the Windows installer
-
-On a Windows machine with Node.js installed:
+On Windows:
 
 ```bash
 npm install
@@ -96,19 +199,233 @@ npm run rebuild
 npm run package
 ```
 
-The installer is written to:
+The generated installer will be available in:
 
 ```text
-release/AI IDE Setup 0.1.0.exe
+release/
+└── AI IDE Setup 0.1.0.exe
 ```
 
-The packaged app contains the renderer and Electron main process. User projects
-remain on the user's filesystem, and AI requests go directly to the configured
-provider using the user's own API key (BYOK).
+The resulting installer can be distributed directly to Windows users or uploaded to GitHub Releases.
 
-### Important
+### Why build on Windows?
 
-Build the Windows installer on Windows for the most reliable native-module
-packaging because the integrated terminal uses `node-pty`. Do not put provider API
-keys in `.env` files that are bundled into the application or hard-code your own
-provider keys into the app.
+The integrated terminal uses the native `node-pty` dependency.
+
+Building the Windows release directly on Windows provides the most reliable native-module packaging experience.
+
+---
+
+## 🔑 API Keys
+
+AI IDE follows a **Bring Your Own Key (BYOK)** model.
+
+Users provide their own API credentials through the application's settings.
+
+API keys are stored locally using Electron's secure storage facilities.
+
+### Supported providers
+
+#### Google Gemini
+
+Configure a Google AI Studio / Gemini API key and select an available Gemini model.
+
+#### NVIDIA NIM
+
+Configure your NVIDIA API credentials and use NVIDIA's OpenAI-compatible API.
+
+#### Groq
+
+Configure your Groq API key and select an available Groq model.
+
+---
+
+## 🔒 Security
+
+AI IDE uses Electron security best practices including:
+
+* Context isolation
+* Disabled Node integration in the renderer
+* Sandboxed renderer
+* Allow-listed IPC communication
+* Filesystem path-traversal protection
+* Secure API-key storage through Electron `safeStorage`
+* Explicit AI context selection
+* Protection against exposing `.env`-style files through AI context
+
+AI context is opt-in — files are not automatically sent to an AI provider without the application requesting them as part of the selected workflow.
+
+> **Important:** Never hard-code your own API keys into the application or commit API keys to GitHub.
+
+---
+
+## 📁 Project Structure
+
+```text
+ai-ide/
+│
+├── electron/
+│   ├── main.ts
+│   ├── preload.ts
+│   ├── ipc/
+│   │   ├── fs.ts
+│   │   ├── terminal.ts
+│   │   └── keys.ts
+│   └── security/
+│
+├── src/
+│   ├── components/
+│   │   ├── Chat/
+│   │   ├── Editor/
+│   │   ├── Terminal/
+│   │   ├── Sidebar/
+│   │   ├── Settings/
+│   │   └── Diff/
+│   ├── stores/
+│   ├── hooks/
+│   └── App.tsx
+│
+├── ai/
+│   ├── agent/
+│   ├── context/
+│   ├── core/
+│   ├── providers/
+│   └── router/
+│
+├── package.json
+├── vite.config.ts
+└── README.md
+```
+
+---
+
+## ➕ Adding Another AI Provider
+
+AI providers are isolated behind a common provider interface.
+
+To add a new provider:
+
+1. Implement the `AIProvider` interface.
+2. Add the provider under:
+
+```text
+ai/providers/
+```
+
+3. Register it in:
+
+```text
+ai/core/registry.ts
+```
+
+4. Add the provider configuration to the settings UI.
+
+The rest of the application can continue using the same provider abstraction.
+
+---
+
+## 🚧 Roadmap
+
+AI IDE is actively evolving.
+
+Planned improvements include:
+
+* [ ] More AI providers
+* [ ] Improved agent tool-calling
+* [ ] Native Git integration
+* [ ] Live frontend preview
+* [ ] Project-wide indexed search
+* [ ] Command palette
+* [ ] Model favorites and profiles
+* [ ] MCP/plugin support
+* [ ] Improved agent workflows
+* [ ] Automatic application updates
+* [ ] macOS support
+* [ ] Linux support
+
+Some of these features have architectural scaffolding already but are not fully implemented yet.
+
+---
+
+## 🤝 Contributing
+
+Contributions, ideas, bug reports, and feature requests are welcome.
+
+If you'd like to contribute:
+
+1. Fork the repository.
+2. Create a feature branch.
+
+```bash
+git checkout -b feature/my-feature
+```
+
+3. Make your changes.
+4. Test the application.
+5. Commit your changes.
+
+```bash
+git commit -m "Add my feature"
+```
+
+6. Push your branch.
+
+```bash
+git push origin feature/my-feature
+```
+
+7. Open a Pull Request.
+
+---
+
+## 🐛 Issues & Feature Requests
+
+If you encounter a bug or have an idea for improving AI IDE, please open an issue in the GitHub repository.
+
+When reporting a bug, include:
+
+* Windows version
+* AI IDE version
+* AI provider/model
+* Steps to reproduce the issue
+* Relevant error messages
+
+**Never include API keys or other secrets in an issue.**
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License**.
+
+See the `LICENSE` file for details.
+
+---
+
+## ⭐ Support the Project
+
+If you find AI IDE useful:
+
+* ⭐ Star the repository
+* 🐛 Report bugs
+* 💡 Suggest features
+* 🔧 Contribute improvements
+* 📢 Share the project
+
+Every contribution helps improve the project.
+
+---
+
+## ⚠️ Disclaimer
+
+AI-generated code can contain bugs, security vulnerabilities, or unintended behavior.
+
+Always review AI-generated changes before applying them to important projects.
+
+You are responsible for the API usage and costs associated with the AI providers whose keys you configure.
+
+---
+
+## Built with ❤️ for developers
+
+**AI IDE — Your code. Your machine. Your API keys.**
